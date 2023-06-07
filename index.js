@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors');
 const app = express()
 const { MongoClient, ServerApiVersion } = require('mongodb');
+require("dotenv").config();
 const port = process.env.port || 3000
 
 app.use(cors())
@@ -36,6 +37,7 @@ async function run() {
 
     app.post('/users', async(req, res)=>{
         const {user} = req.body
+        console.log(user);
         const result = await usersCollecion.insertOne(user)
         res.send(result)
     })
