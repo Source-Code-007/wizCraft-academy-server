@@ -35,11 +35,31 @@ async function run() {
     const wizcraft_DB = client.db('wizcraft_db')
     const usersCollecion = wizcraft_DB.collection('usersCollection')
 
+    // users management
     app.post('/users', async(req, res)=>{
         const {user} = req.body
         console.log(user);
         const result = await usersCollecion.insertOne(user)
         res.send(result)
+    })
+    app.get('/users', async(req, res)=>{
+        const result = await usersCollecion.find({}).toArray()
+        res.send(result)
+    })
+
+    // admin management
+
+
+    // utilites
+    app.get('/users-role', async(req, res)=>{
+      if(!req.query){
+        return res.send({error: 'You must provide email query!'})
+      }
+
+      const {email} = req.query
+
+      const result = await usersCollecion.findOne({email})
+      res.send({role:result.role})
     })
 
   } finally {
