@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 const app = express()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 const port = process.env.port || 3000
 
@@ -9,8 +9,8 @@ app.use(cors())
 app.use(express.json())
 
 
-app.get('/', (req, res)=>{
-    res.send('wizcraft server perfectly responses!')
+app.get('/', (req, res) => {
+  res.send('wizcraft server perfectly responses!')
 })
 
 
@@ -37,38 +37,73 @@ async function run() {
     const classCollecion = wizcraft_DB.collection('classCollection')
 
     // users management
-    app.post('/users', async(req, res)=>{
-        const {user} = req.body
-        console.log(user);
-        const result = await usersCollecion.insertOne(user)
-        res.send(result)
+    app.post('/users', async (req, res) => {
+      const { user } = req.body
+      console.log(user);
+      const result = await usersCollecion.insertOne(user)
+      res.send(result)
     })
-    app.get('/users', async(req, res)=>{
-        const result = await usersCollecion.find({}).toArray()
-        res.send(result)
+    app.get('/users', async (req, res) => {
+      const result = await usersCollecion.find({}).toArray()
+      res.send(result)
     })
 
 
 
     // instructor management management
-    app.post('/instructor/add-class', async(req, res)=>{
-      const {myClass} = req.body
-      console.log(56, myClass);
+    app.post('/instructor/add-class', async (req, res) => {
+      const { myClass } = req.body
       const result = await classCollecion.insertOne(myClass)
-      console.log(57, result);
+      res.send(result)
+    })
+    app.get('/instructor/my-classes', async (req, res) => {
+      const result = await classCollecion.find({}).toArray()
+      res.send(result)
+    })
+
+
+    // admin management
+    app.patch(`/class-status-manage/:id`, async (req, res) => {
+      const { status } = req.body
+      console.log(status);
+      const id = req.params.id
+      console.log(id);
+      const find = {_id: new ObjectId(id)}
+      const updatedDoc = {
+        $set: {
+          status
+        }
+      }
+      const result = await classCollecion.updateOne(find, updatedDoc) 
+      res.send(result)
+    })
+
+    app.put('/add-feedback/:id', async(req, res)=>{
+      const {feedback} = req.body
+      const id = req.params.id
+      const find = {_id: new ObjectId(id)}
+      console.log(id, feedback);
+      const options = {upsert: true}
+      const updatedDoc = {
+        $set: {
+          feedback
+        }
+      }
+      
+      const result = await classCollecion.updateOne(find, updatedDoc, options)
       res.send(result)
     })
 
 
     // utilites
-    app.get('/users-role', async(req, res)=>{
-      const {email} = req.query
-      if(!email){
-        return res.send({error: 'You must provide email query!'})
+    app.get('/users-role', async (req, res) => {
+      const { email } = req.query
+      if (!email) {
+        return res.send({ error: 'You must provide email query!' })
       }
 
-      const result = await usersCollecion.findOne({email})
-      res.send({role:result?.role})
+      const result = await usersCollecion.findOne({ email })
+      res.send({ role: result?.role })
     })
 
   } finally {
@@ -78,6 +113,6 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.listen(port, ()=>{
-    console.log('wizcraft server is running!');
+app.listen(port, () => {
+  console.log('wizcraft server is running!');
 })
