@@ -34,6 +34,7 @@ async function run() {
 
     const wizcraft_DB = client.db('wizcraft_db')
     const usersCollecion = wizcraft_DB.collection('usersCollection')
+    const classCollecion = wizcraft_DB.collection('classCollection')
 
     // users management
     app.post('/users', async(req, res)=>{
@@ -47,19 +48,27 @@ async function run() {
         res.send(result)
     })
 
-    // admin management
+
+
+    // instructor management management
+    app.post('/instructor/add-class', async(req, res)=>{
+      const {myClass} = req.body
+      console.log(56, myClass);
+      const result = await classCollecion.insertOne(myClass)
+      console.log(57, result);
+      res.send(result)
+    })
 
 
     // utilites
     app.get('/users-role', async(req, res)=>{
-      if(!req.query){
+      const {email} = req.query
+      if(!email){
         return res.send({error: 'You must provide email query!'})
       }
 
-      const {email} = req.query
-
       const result = await usersCollecion.findOne({email})
-      res.send({role:result.role})
+      res.send({role:result?.role})
     })
 
   } finally {
