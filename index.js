@@ -91,7 +91,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch(`/make-role/:id`, async (req, res) => {
+    app.patch(`/admin/make-role/:id`, async (req, res) => {
       const id = req.params.id
       const { updatedRole } = req.body
       const find = { _id: new ObjectId(id) }
@@ -103,7 +103,7 @@ async function run() {
       }
 
 
-      const result = await usersCollecion.findOne(find, updatedDoc)
+      const result = await usersCollecion.updateOne(find, updatedDoc)
 
       res.send(result)
 
