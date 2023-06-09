@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 const app = express()
+const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 const port = process.env.port || 3000
@@ -42,7 +43,7 @@ async function run() {
       const result = await usersCollecion.insertOne(user)
       res.send(result)
     })
-    app.get('/users', async (req, res) => {
+    app.get('/all-users', async (req, res) => {
       const result = await usersCollecion.find({}).toArray()
       res.send(result)
     })
@@ -62,7 +63,7 @@ async function run() {
 
 
     // admin management
-    app.patch(`/class-status-manage/:id`, async (req, res) => {
+    app.patch(`/admin/class-status-manage/:id`, async (req, res) => {
       const { status } = req.body
       console.log(status);
       const id = req.params.id
@@ -77,7 +78,7 @@ async function run() {
       res.send(result)
     })
 
-    app.put('/add-feedback/:id', async (req, res) => {
+    app.put('/admin/add-feedback/:id', async (req, res) => {
       const { feedback } = req.body
       const id = req.params.id
       const find = { _id: new ObjectId(id) }
@@ -95,23 +96,20 @@ async function run() {
       const id = req.params.id
       const { updatedRole } = req.body
       const find = { _id: new ObjectId(id) }
-      console.log(id, updatedRole);
       const updatedDoc = {
         $set: {
-          updatedRole
+          role: updatedRole
         }
       }
 
-
       const result = await usersCollecion.updateOne(find, updatedDoc)
-
       res.send(result)
 
     })
 
 
     // utilites
-    app.get('/users-role', async (req, res) => {
+    app.get('/get-role', async (req, res) => {
       const { email } = req.query
       if (!email) {
         return res.send({ error: 'You must provide email query!' })
@@ -119,6 +117,14 @@ async function run() {
 
       const result = await usersCollecion.findOne({ email })
       res.send({ role: result?.role })
+    })
+
+    // security mechanism
+    app.post('/create-jwt', async(req, res)=>{
+      const {email} = req.body
+      console.log(email, process.env.JWT_TOKEN);
+      const result = jwt.sign({email}, process.env.JWT_TOKEN)
+      res.send(result)
     })
 
   } finally {
