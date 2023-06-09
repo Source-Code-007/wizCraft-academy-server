@@ -1,9 +1,10 @@
+require("dotenv").config();
 const express = require('express')
 const cors = require('cors');
 const app = express()
 const jwt = require('jsonwebtoken')
+const jwtVerifyF = require('./middleware/jwtVerify')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require("dotenv").config();
 const port = process.env.port || 3000
 
 app.use(cors())
@@ -37,6 +38,14 @@ async function run() {
     const usersCollecion = wizcraft_DB.collection('usersCollection')
     const classCollecion = wizcraft_DB.collection('classCollection')
 
+
+    // common route
+    app.get('/all-classes', async (req, res)=>{
+      const find = {status: 'approved'}
+      const result = await classCollecion.find(find).toArray()
+      res.send(result)
+    })
+
     // users management
     app.post('/users', async (req, res) => {
       const { user } = req.body
@@ -49,15 +58,23 @@ async function run() {
     })
 
 
-
     // instructor management management
     app.post('/instructor/add-class', async (req, res) => {
       const { myClass } = req.body
       const result = await classCollecion.insertOne(myClass)
       res.send(result)
     })
-    app.get('/instructor/my-classes', async (req, res) => {
-      const result = await classCollecion.find({}).toArray()
+
+    app.get('/instructor/my-classes', jwtVerifyF, async (req, res) => {
+      const {email} = req.query
+      const find = {instructorEmail: email}
+      const result = await classCollecion.find(find).toArray()
+      res.send(result)
+    })
+
+    app.get('/all-instructors', async(req, res)=>{
+      const find = {role: 'instructor'}
+      const result = await usersCollecion.find(find).toArray()
       res.send(result)
     })
 
@@ -109,7 +126,7 @@ async function run() {
 
 
     // utilites
-    app.get('/get-role', async (req, res) => {
+    app.get('/get-role', jwtVerifyF, async (req, res) => {
       const { email } = req.query
       if (!email) {
         return res.send({ error: 'You must provide email query!' })
@@ -122,9 +139,12 @@ async function run() {
     // security mechanism
     app.post('/create-jwt', async(req, res)=>{
       const {email} = req.body
-      console.log(email, process.env.JWT_TOKEN);
       const result = jwt.sign({email}, process.env.JWT_TOKEN)
       res.send(result)
+    })
+
+    app.get('/test-jwt', jwtVerifyF, (req, res)=>{
+      res.send({test: 'done'})
     })
 
   } finally {
