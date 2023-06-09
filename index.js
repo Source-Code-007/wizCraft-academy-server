@@ -39,7 +39,6 @@ async function run() {
     // users management
     app.post('/users', async (req, res) => {
       const { user } = req.body
-      console.log(user);
       const result = await usersCollecion.insertOne(user)
       res.send(result)
     })
@@ -68,30 +67,46 @@ async function run() {
       console.log(status);
       const id = req.params.id
       console.log(id);
-      const find = {_id: new ObjectId(id)}
+      const find = { _id: new ObjectId(id) }
       const updatedDoc = {
         $set: {
           status
         }
       }
-      const result = await classCollecion.updateOne(find, updatedDoc) 
+      const result = await classCollecion.updateOne(find, updatedDoc)
       res.send(result)
     })
 
-    app.put('/add-feedback/:id', async(req, res)=>{
-      const {feedback} = req.body
+    app.put('/add-feedback/:id', async (req, res) => {
+      const { feedback } = req.body
       const id = req.params.id
-      const find = {_id: new ObjectId(id)}
-      console.log(id, feedback);
-      const options = {upsert: true}
+      const find = { _id: new ObjectId(id) }
+      const options = { upsert: true }
       const updatedDoc = {
         $set: {
           feedback
         }
       }
-      
       const result = await classCollecion.updateOne(find, updatedDoc, options)
       res.send(result)
+    })
+
+    app.patch(`/make-role/:id`, async (req, res) => {
+      const id = req.params.id
+      const { updatedRole } = req.body
+      const find = { _id: new ObjectId(id) }
+      console.log(id, updatedRole);
+      const updatedDoc = {
+        $set: {
+          updatedRole
+        }
+      }
+
+
+      const result = await usersCollecion.findOne(find, updatedDoc)
+
+      res.send(result)
+
     })
 
 
