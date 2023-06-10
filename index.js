@@ -58,11 +58,33 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/selected-classes', async (req, res)=>{
-      const selectedClass = req.body
+    app.post('/selected-classes', async (req, res) => {
+      const { email } = req.query
+      let selectedClass = req.body
+      const classId = selectedClass._id
+      delete selectedClass._id
+      selectedClass = { ...selectedClass, classId }
+
+      const find = { classId: selectedClass.classId }
+      const existingClass = await selectedClassesCollecion.findOne(find)
+
+      if (existingClass) {
+        // const selectBy = [...existingClass.selectBy, email]
+        // console.log(73, selectBy);
+        console.log(existingClass.selectBy);
+        const updatedDoc = {
+          $set: {
+            ...existingClass, selectBy: [...existingClass.selectBy, email]
+          }
+        }
+        const result = await selectedClassesCollecion.updateOne(find, updatedDoc)
+        return res.send(result)
+      }
+
+      selectedClass.selectBy = [email]
       console.log(selectedClass);
-      // const result = await selectedClassesCollecion.insertOne()
-      // res.send(result)
+      const result = await selectedClassesCollecion.insertOne(selectedClass)
+      res.send(result)
     })
 
 
