@@ -40,6 +40,7 @@ async function run() {
     const classCollection = wizcraft_DB.collection('classCollection')
     const selectedClassesCollection = wizcraft_DB.collection('selectedClassesCollection')
     const paymentCollection = wizcraft_DB.collection('paymentCollection')
+    const enrolledClassesCollection = wizcraft_DB.collection('enrolledClassesCollection')
 
 
     // common route
@@ -119,6 +120,54 @@ async function run() {
       )
 
       res.send(result)
+    })
+
+    // add enrolled classes
+    app.post('/enrolled-classes', async(req, res)=>{
+      const {enrolledClass} = req.body
+      const {email} = req.body
+      // const selectedClassId = enrolledClass._id //TODO: If need selected id
+      delete enrolledClass._id
+      delete enrolledClass.selectBy
+      delete enrolledClass.availableSeats
+
+      const find = {classId : enrolledClass?.classId}
+      const existingEnrolledClass = await enrolledClassesCollection.findOne(find)
+      if(existingEnrolledClass){
+        const updatedExistingEnrolledClass = {
+          $set:{
+            ...existingEnrolledClass, enrolledBy: [...existingEnrolledClass.enrolledBy, email] 
+          }
+        } 
+        const result = await enrolledClassesCollection.updateOne(find, updatedExistingEnrolledClass)
+        return res.send(result)
+      }
+
+      enrolledClass.enrolledBy = [email]
+      const result = await enrolledClassesCollection.insertOne(enrolledClass)
+      res.send(result)
+
+    })
+
+    // after enrolled student reduce availableSeats from class
+    app.patch('/reduce-available-seat-from-class', async(req, res)=>{
+      const {classId} = req.body
+      const find = {_id: new ObjectId(classId)}
+      const classP = await classCollection.findOne(find)
+
+      if(!(classP?.availableSeats>0)){
+        return res.send({foo: 'bar'})
+      }
+
+        classP.availableSeats-=1
+        const updatedClass = {
+          $set:{
+            availableSeats: classP.availableSeats
+          }
+        }
+        const result = await classCollection.updateOne(find, updatedClass)
+        res.send(result)
+
     })
 
 
@@ -229,7 +278,6 @@ async function run() {
     // store payment info
     app.post('/store-payment-info', async(req, res)=>{
       const paymentInfo = req.body 
-      console.log(paymentInfo);
       const result = await paymentCollection.insertOne(paymentInfo) 
       res.send(result)
     })
