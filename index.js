@@ -5,6 +5,7 @@ const app = express()
 const jwt = require('jsonwebtoken')
 const jwtVerifyF = require('./middleware/jwtVerify')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.STRIPE_SK)
 const port = process.env.port || 3000
 
 app.use(cors())
@@ -35,26 +36,27 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     const wizcraft_DB = client.db('wizcraft_db')
-    const usersCollecion = wizcraft_DB.collection('usersCollection')
-    const classCollecion = wizcraft_DB.collection('classCollection')
-    const selectedClassesCollecion = wizcraft_DB.collection('selectedClassesCollecion')
+    const usersCollection = wizcraft_DB.collection('usersCollection')
+    const classCollection = wizcraft_DB.collection('classCollection')
+    const selectedClassesCollection = wizcraft_DB.collection('selectedClassesCollection')
+    const paymentCollection = wizcraft_DB.collection('paymentCollection')
 
 
     // common route
     app.get('/approved-classes', async (req, res) => {
       const find = { status: 'approved' }
-      const result = await classCollecion.find(find).toArray()
+      const result = await classCollection.find(find).toArray()
       res.send(result)
     })
 
-    // users management
+    // users management ***
     app.post('/users', async (req, res) => {
       const { user } = req.body
-      const result = await usersCollecion.insertOne(user)
+      const result = await usersCollection.insertOne(user)
       res.send(result)
     })
     app.get('/all-users', async (req, res) => {
-      const result = await usersCollecion.find({}).toArray()
+      const result = await usersCollection.find({}).toArray()
       res.send(result)
     })
 
@@ -65,51 +67,84 @@ async function run() {
       delete selectedClass._id
       selectedClass = { ...selectedClass, classId }
 
-      const find = { classId: selectedClass.classId }
-      const existingClass = await selectedClassesCollecion.findOne(find)
+      const find = { classId: selectedClass?.classId }
+      const existingClass = await selectedClassesCollection.findOne(find)
 
       if (existingClass) {
-        // const selectBy = [...existingClass.selectBy, email]
-        // console.log(73, selectBy);
-        console.log(existingClass.selectBy);
         const updatedDoc = {
           $set: {
             ...existingClass, selectBy: [...existingClass.selectBy, email]
           }
         }
-        const result = await selectedClassesCollecion.updateOne(find, updatedDoc)
+        const result = await selectedClassesCollection.updateOne(find, updatedDoc)
         return res.send(result)
       }
 
       selectedClass.selectBy = [email]
       console.log(selectedClass);
-      const result = await selectedClassesCollecion.insertOne(selectedClass)
+      const result = await selectedClassesCollection.insertOne(selectedClass)
+      res.send(result)
+    })
+
+    app.get('/all-selected-classes', async (req, res) => {
+      const result = await selectedClassesCollection.find().toArray()
+      res.send(result)
+    })
+
+    // Get specific user selected classes via email
+    app.get('/specific-user-selected-classes', async (req, res) => {
+      const { email } = req.query
+      if (!email) {
+        return res.send({ message: 'You must provide email query' })
+      }
+
+      const find = { selectBy: email }
+      const result = await selectedClassesCollection.find(find).toArray()
+      res.send(result)
+    })
+
+    // Remove specific selected classes via email and id
+     app.delete('/delete-specific-user-selected-classes', async (req, res) => {
+      const { email } = req.query
+      const { id } = req.query
+
+      if (!email || !id) {
+        return res.send({ message: 'You must provide email and class id' })
+      }
+
+      const result = await selectedClassesCollection.updateOne(
+        { classId: id },
+        { $pull: { selectBy: email } }
+
+      )
+
       res.send(result)
     })
 
 
-    // instructor management management
+
+    // instructor management management ***
     app.post('/instructor/add-class', async (req, res) => {
       const { myClass } = req.body
-      const result = await classCollecion.insertOne(myClass)
+      const result = await classCollection.insertOne(myClass)
       res.send(result)
     })
 
     app.get('/instructor/my-classes', jwtVerifyF, async (req, res) => {
       const { email } = req.query
       const find = { instructorEmail: email }
-      const result = await classCollecion.find(find).toArray()
+      const result = await classCollection.find(find).toArray()
       res.send(result)
     })
 
     app.get('/all-instructors', async (req, res) => {
       const find = { role: 'instructor' }
-      const result = await usersCollecion.find(find).toArray()
+      const result = await usersCollection.find(find).toArray()
       res.send(result)
     })
 
 
-    // admin management
+    // admin management ***
     app.patch(`/admin/class-status-manage/:id`, async (req, res) => {
       const { status } = req.body
       const id = req.params.id
@@ -119,7 +154,7 @@ async function run() {
           status
         }
       }
-      const result = await classCollecion.updateOne(find, updatedDoc)
+      const result = await classCollection.updateOne(find, updatedDoc)
       res.send(result)
     })
 
@@ -133,7 +168,7 @@ async function run() {
           feedback
         }
       }
-      const result = await classCollecion.updateOne(find, updatedDoc, options)
+      const result = await classCollection.updateOne(find, updatedDoc, options)
       res.send(result)
     })
 
@@ -147,35 +182,61 @@ async function run() {
         }
       }
 
-      const result = await usersCollecion.updateOne(find, updatedDoc)
+      const result = await usersCollection.updateOne(find, updatedDoc)
       res.send(result)
 
     })
 
     // for manage classes by admin
     app.get('/all-classes', jwtVerifyF, async (req, res) => {
-      const result = await classCollecion.find({}).toArray()
+      const result = await classCollection.find({}).toArray()
       res.send(result)
     })
 
 
-    // utilites
+    // utilites ***
     app.get('/get-role', async (req, res) => {
       const { email } = req.query
       if (!email) {
         return res.send({ error: 'You must provide email query!' })
       }
 
-      const result = await usersCollecion.findOne({ email })
+      const result = await usersCollection.findOne({ email })
       res.send({ role: result?.role })
     })
 
-    // security mechanism
+    // security mechanism ***
     app.post('/create-jwt', async (req, res) => {
       const { email } = req.body
       const result = jwt.sign({ email }, process.env.JWT_TOKEN)
       res.send(result)
     })
+
+
+
+    // payment related (stripe) ***
+    // for create intent  
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: parseFloat(price) * 100,
+        currency: 'usd',
+        payment_method_types: ['card'],
+      })
+      res.send({ clientSecret: paymentIntent.client_secret });
+    })
+
+    // store payment info
+    app.post('/store-payment-info', async(req, res)=>{
+      const paymentInfo = req.body 
+      console.log(paymentInfo);
+      const result = await paymentCollection.insertOne(paymentInfo) 
+      res.send(result)
+    })
+
+
+
+
 
     app.get('/test-jwt', jwtVerifyF, (req, res) => {
       res.send({ test: 'done' })
