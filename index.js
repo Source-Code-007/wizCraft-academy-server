@@ -37,11 +37,12 @@ async function run() {
     const wizcraft_DB = client.db('wizcraft_db')
     const usersCollecion = wizcraft_DB.collection('usersCollection')
     const classCollecion = wizcraft_DB.collection('classCollection')
+    const selectedClassesCollecion = wizcraft_DB.collection('selectedClassesCollecion')
 
 
     // common route
-    app.get('/all-classes', async (req, res)=>{
-      const find = {status: 'approved'}
+    app.get('/approved-classes', async (req, res) => {
+      const find = { status: 'approved' }
       const result = await classCollecion.find(find).toArray()
       res.send(result)
     })
@@ -57,6 +58,13 @@ async function run() {
       res.send(result)
     })
 
+    app.post('/selected-classes', async (req, res)=>{
+      const selectedClass = req.body
+      console.log(selectedClass);
+      // const result = await selectedClassesCollecion.insertOne()
+      // res.send(result)
+    })
+
 
     // instructor management management
     app.post('/instructor/add-class', async (req, res) => {
@@ -66,14 +74,14 @@ async function run() {
     })
 
     app.get('/instructor/my-classes', jwtVerifyF, async (req, res) => {
-      const {email} = req.query
-      const find = {instructorEmail: email}
+      const { email } = req.query
+      const find = { instructorEmail: email }
       const result = await classCollecion.find(find).toArray()
       res.send(result)
     })
 
-    app.get('/all-instructors', async(req, res)=>{
-      const find = {role: 'instructor'}
+    app.get('/all-instructors', async (req, res) => {
+      const find = { role: 'instructor' }
       const result = await usersCollecion.find(find).toArray()
       res.send(result)
     })
@@ -82,9 +90,7 @@ async function run() {
     // admin management
     app.patch(`/admin/class-status-manage/:id`, async (req, res) => {
       const { status } = req.body
-      console.log(status);
       const id = req.params.id
-      console.log(id);
       const find = { _id: new ObjectId(id) }
       const updatedDoc = {
         $set: {
@@ -124,9 +130,15 @@ async function run() {
 
     })
 
+    // for manage classes by admin
+    app.get('/all-classes', jwtVerifyF, async (req, res) => {
+      const result = await classCollecion.find({}).toArray()
+      res.send(result)
+    })
+
 
     // utilites
-    app.get('/get-role', jwtVerifyF, async (req, res) => {
+    app.get('/get-role', async (req, res) => {
       const { email } = req.query
       if (!email) {
         return res.send({ error: 'You must provide email query!' })
@@ -137,14 +149,14 @@ async function run() {
     })
 
     // security mechanism
-    app.post('/create-jwt', async(req, res)=>{
-      const {email} = req.body
-      const result = jwt.sign({email}, process.env.JWT_TOKEN)
+    app.post('/create-jwt', async (req, res) => {
+      const { email } = req.body
+      const result = jwt.sign({ email }, process.env.JWT_TOKEN)
       res.send(result)
     })
 
-    app.get('/test-jwt', jwtVerifyF, (req, res)=>{
-      res.send({test: 'done'})
+    app.get('/test-jwt', jwtVerifyF, (req, res) => {
+      res.send({ test: 'done' })
     })
 
   } finally {
