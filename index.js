@@ -41,9 +41,10 @@ async function run() {
     const selectedClassesCollection = wizcraft_DB.collection('selectedClassesCollection')
     const paymentCollection = wizcraft_DB.collection('paymentCollection')
     const enrolledClassesCollection = wizcraft_DB.collection('enrolledClassesCollection')
+    const testimonialCollection = wizcraft_DB.collection('testimonialCollection')
 
 
-    // common route
+    // common route ***
     app.get('/approved-classes', async (req, res) => {
       const find = { status: 'approved' }
       const result = await classCollection.find(find).toArray()
@@ -56,8 +57,15 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/popular-instructor', async(req, res)=>{
+    // popular six instructor
+    app.get('/popular-instructors', async(req, res)=>{
       const result = await usersCollection.find().sort({enrolledStudent: -1}).limit(6).toArray()
+      res.send(result)
+    })
+
+    // testimonials
+    app.get('/get-testimonials', async(req, res)=>{
+      const result = await testimonialCollection.find().toArray()
       res.send(result)
     })
 
