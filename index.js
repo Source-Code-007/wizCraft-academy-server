@@ -82,7 +82,6 @@ async function run() {
       }
 
       selectedClass.selectBy = [email]
-      console.log(selectedClass);
       const result = await selectedClassesCollection.insertOne(selectedClass)
       res.send(result)
     })
@@ -155,9 +154,10 @@ async function run() {
       }
 
         classP.availableSeats-=1
+        classP.enrolledStudent+=1
         const updatedClass = {
           $set:{
-            availableSeats: classP.availableSeats
+            availableSeats: classP.availableSeats, enrolledStudent: classP.enrolledStudent
           }
         }
         const result = await classCollection.updateOne(find, updatedClass)
@@ -168,7 +168,7 @@ async function run() {
 
 
     // instructor management management ***
-    app.post('/instructor/add-class', async (req, res) => {
+    app.post('/instructor/add-class', jwtVerifyF, async (req, res) => {
       const { myClass } = req.body
       const result = await classCollection.insertOne(myClass)
       res.send(result)
@@ -178,6 +178,19 @@ async function run() {
       const { email } = req.query
       const find = { instructorEmail: email }
       const result = await classCollection.find(find).toArray()
+      res.send(result)
+    })
+
+    app.patch('/instructor/update-class/:id', jwtVerifyF, async(req, res)=>{
+      const id = req.params.id
+      const {updatedClass} = req.body
+      const find = {_id: new ObjectId(id)}
+      const updatedClassP = {
+        $set: {
+          className: updatedClass.className, price: updatedClass.price, classImg: updatedClass.clasImg
+        }
+      }
+      const result = await classCollection.updateOne(find, updatedClassP)
       res.send(result)
     })
 
@@ -274,6 +287,12 @@ async function run() {
     app.post('/store-payment-info', async(req, res)=>{
       const paymentInfo = req.body 
       const result = await paymentCollection.insertOne(paymentInfo) 
+      res.send(result)
+    })
+    // get payment info by email
+    app.get('/get-payment-info', async(req, res)=>{
+      const {email} = req.query 
+      const result = await paymentCollection.find({email}).sort({date: -1}).toArray() 
       res.send(result)
     })
 
