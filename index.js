@@ -93,7 +93,7 @@ async function run() {
     })
 
     // Get specific user selected classes via email
-    app.get('/specific-user-selected-classes', async (req, res) => {
+    app.get('/my-selected-classes', async (req, res) => {
       const { email } = req.query
       if (!email) {
         return res.send({ message: 'You must provide email query' })
@@ -105,7 +105,7 @@ async function run() {
     })
 
     // Remove specific selected classes via email and id
-     app.delete('/delete-specific-user-selected-classes', async (req, res) => {
+     app.delete('/delete-my-selected-classes', async (req, res) => {
       const { email } = req.query
       const { id } = req.query
 
@@ -125,29 +125,24 @@ async function run() {
     // add enrolled classes
     app.post('/enrolled-classes', async(req, res)=>{
       const {enrolledClass} = req.body
-      const {email} = req.body
       // const selectedClassId = enrolledClass._id //TODO: If need selected id
       delete enrolledClass._id
       delete enrolledClass.selectBy
       delete enrolledClass.availableSeats
 
-      const find = {classId : enrolledClass?.classId}
-      const existingEnrolledClass = await enrolledClassesCollection.findOne(find)
-      if(existingEnrolledClass){
-        const updatedExistingEnrolledClass = {
-          $set:{
-            ...existingEnrolledClass, enrolledBy: [...existingEnrolledClass.enrolledBy, email] 
-          }
-        } 
-        const result = await enrolledClassesCollection.updateOne(find, updatedExistingEnrolledClass)
-        return res.send(result)
-      }
-
-      enrolledClass.enrolledBy = [email]
       const result = await enrolledClassesCollection.insertOne(enrolledClass)
       res.send(result)
 
     })
+
+    // get my enrolled classes
+    app.get('/my-enrolled-classes', async(req, res)=>{
+      const {email} = req.query
+      const find = {enrolledBy: email}
+      const result = await enrolledClassesCollection.find(find).toArray()
+      res.send(result)
+    })
+
 
     // after enrolled student reduce availableSeats from class
     app.patch('/reduce-available-seat-from-class', async(req, res)=>{
