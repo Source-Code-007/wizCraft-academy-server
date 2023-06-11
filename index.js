@@ -53,6 +53,12 @@ async function run() {
     // users management ***
     app.post('/users', async (req, res) => {
       const { user } = req.body
+      const existUser = await usersCollection.findOne({email: user.email})
+      if(existUser){
+        console.log('exist user');
+        return res.send({message: 'user already exist'})
+      }
+      console.log('new user');
       const result = await usersCollection.insertOne(user)
       res.send(result)
     })
@@ -187,7 +193,7 @@ async function run() {
       const find = {_id: new ObjectId(id)}
       const updatedClassP = {
         $set: {
-          className: updatedClass.className, price: updatedClass.price, classImg: updatedClass.clasImg
+          className: updatedClass.className, price: updatedClass.price, classImg: updatedClass.classImg
         }
       }
       const result = await classCollection.updateOne(find, updatedClassP)
