@@ -50,15 +50,20 @@ async function run() {
       res.send(result)
     })
 
+    // popular six class
+    app.get('/popular-classes', async (req, res) => {
+      const result = await classCollection.sort({ enrolledStudent: -1 }).toArray()
+
+      res.send(result);
+    })
+
     // users management ***
     app.post('/users', async (req, res) => {
       const { user } = req.body
-      const existUser = await usersCollection.findOne({email: user.email})
-      if(existUser){
-        console.log('exist user');
-        return res.send({message: 'user already exist'})
+      const existUser = await usersCollection.findOne({ email: user.email })
+      if (existUser) {
+        return res.send({ message: 'user already exist' })
       }
-      console.log('new user');
       const result = await usersCollection.insertOne(user)
       res.send(result)
     })
@@ -110,7 +115,7 @@ async function run() {
     })
 
     // Remove specific selected classes via email and id
-     app.delete('/delete-my-selected-classes', async (req, res) => {
+    app.delete('/delete-my-selected-classes', async (req, res) => {
       const { email } = req.query
       const { id } = req.query
 
@@ -128,8 +133,8 @@ async function run() {
     })
 
     // add enrolled classes
-    app.post('/enrolled-classes', async(req, res)=>{
-      const {enrolledClass} = req.body
+    app.post('/enrolled-classes', async (req, res) => {
+      const { enrolledClass } = req.body
       // const selectedClassId = enrolledClass._id //TODO: If need selected id
       delete enrolledClass._id
       delete enrolledClass.selectBy
@@ -141,33 +146,33 @@ async function run() {
     })
 
     // get my enrolled classes
-    app.get('/my-enrolled-classes', async(req, res)=>{
-      const {email} = req.query
-      const find = {enrolledBy: email}
+    app.get('/my-enrolled-classes', async (req, res) => {
+      const { email } = req.query
+      const find = { enrolledBy: email }
       const result = await enrolledClassesCollection.find(find).toArray()
       res.send(result)
     })
 
 
     // after enrolled student reduce availableSeats from class
-    app.patch('/reduce-available-seat-from-class', async(req, res)=>{
-      const {classId} = req.body
-      const find = {_id: new ObjectId(classId)}
+    app.patch('/reduce-available-seat-from-class', async (req, res) => {
+      const { classId } = req.body
+      const find = { _id: new ObjectId(classId) }
       const classP = await classCollection.findOne(find)
 
-      if(!(classP?.availableSeats>0)){
-        return res.send({foo: 'bar'})
+      if (!(classP?.availableSeats > 0)) {
+        return res.send({ foo: 'bar' })
       }
 
-        classP.availableSeats-=1
-        classP.enrolledStudent+=1
-        const updatedClass = {
-          $set:{
-            availableSeats: classP.availableSeats, enrolledStudent: classP.enrolledStudent
-          }
+      classP.availableSeats -= 1
+      classP.enrolledStudent += 1
+      const updatedClass = {
+        $set: {
+          availableSeats: classP.availableSeats, enrolledStudent: classP.enrolledStudent
         }
-        const result = await classCollection.updateOne(find, updatedClass)
-        res.send(result)
+      }
+      const result = await classCollection.updateOne(find, updatedClass)
+      res.send(result)
 
     })
 
@@ -187,10 +192,10 @@ async function run() {
       res.send(result)
     })
 
-    app.patch('/instructor/update-class/:id', jwtVerifyF, async(req, res)=>{
+    app.patch('/instructor/update-class/:id', jwtVerifyF, async (req, res) => {
       const id = req.params.id
-      const {updatedClass} = req.body
-      const find = {_id: new ObjectId(id)}
+      const { updatedClass } = req.body
+      const find = { _id: new ObjectId(id) }
       const updatedClassP = {
         $set: {
           className: updatedClass.className, price: updatedClass.price, classImg: updatedClass.classImg
@@ -290,15 +295,15 @@ async function run() {
     })
 
     // store payment info
-    app.post('/store-payment-info', async(req, res)=>{
-      const paymentInfo = req.body 
-      const result = await paymentCollection.insertOne(paymentInfo) 
+    app.post('/store-payment-info', async (req, res) => {
+      const paymentInfo = req.body
+      const result = await paymentCollection.insertOne(paymentInfo)
       res.send(result)
     })
     // get payment info by email
-    app.get('/get-payment-info', async(req, res)=>{
-      const {email} = req.query 
-      const result = await paymentCollection.find({email}).sort({date: -1}).toArray() 
+    app.get('/get-payment-info', async (req, res) => {
+      const { email } = req.query
+      const result = await paymentCollection.find({ email }).sort({ date: -1 }).toArray()
       res.send(result)
     })
 
