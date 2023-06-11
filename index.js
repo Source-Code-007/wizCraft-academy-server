@@ -52,10 +52,15 @@ async function run() {
 
     // popular six class
     app.get('/popular-classes', async (req, res) => {
-      const result = await classCollection.sort({ enrolledStudent: -1 }).toArray()
-
+      const result = await classCollection.find().sort({ enrolledStudent: -1 }).limit(6).toArray()
       res.send(result);
     })
+
+    app.get('/popular-instructor', async(req, res)=>{
+      const result = await usersCollection.find().sort({enrolledStudent: -1}).limit(6).toArray()
+      res.send(result)
+    })
+
 
     // users management ***
     app.post('/users', async (req, res) => {
@@ -97,6 +102,7 @@ async function run() {
       res.send(result)
     })
 
+    // add selected classes
     app.get('/all-selected-classes', async (req, res) => {
       const result = await selectedClassesCollection.find().toArray()
       res.send(result)
@@ -153,10 +159,10 @@ async function run() {
       res.send(result)
     })
 
-
-    // after enrolled student reduce availableSeats from class
-    app.patch('/reduce-available-seat-from-class', async (req, res) => {
+    // after enrolled student, reduce availableSeats from class and add enrolledStudent in class and instructor
+    app.patch('/reduce-available-seat-and-increase-enrolled-student', async (req, res) => {
       const { classId } = req.body
+      const { instructorEmail } = req.body
       const find = { _id: new ObjectId(classId) }
       const classP = await classCollection.findOne(find)
 
@@ -171,6 +177,18 @@ async function run() {
           availableSeats: classP.availableSeats, enrolledStudent: classP.enrolledStudent
         }
       }
+
+      // update enrolledStudent in instructor document in usersCollection
+      const findInstructor = { email: instructorEmail }
+      const instructor = await usersCollection.findOne(findInstructor)
+      const options = { upsert: true }
+      const updatedInstructor = {
+        $set: {
+          enrolledStudent: instructor.enrolledStudent ? instructor.enrolledStudent + 1 : 1
+        }
+      }
+      await usersCollection.updateOne(findInstructor, updatedInstructor, options)
+
       const result = await classCollection.updateOne(find, updatedClass)
       res.send(result)
 
@@ -178,7 +196,10 @@ async function run() {
 
 
 
-    // instructor management management ***
+
+
+
+    // instructor management  ***
     app.post('/instructor/add-class', jwtVerifyF, async (req, res) => {
       const { myClass } = req.body
       const result = await classCollection.insertOne(myClass)
@@ -240,10 +261,22 @@ async function run() {
       res.send(result)
     })
 
+    // make role, if make instructor then a field added named enrolledStudent, initially it's value is 0
     app.patch(`/admin/make-role/:id`, async (req, res) => {
       const id = req.params.id
       const { updatedRole } = req.body
       const find = { _id: new ObjectId(id) }
+
+      if (updatedRole === 'instructor') {
+        const updatedDoc = {
+          $set: {
+            role: updatedRole, enrolledStudent: 0
+          }
+        }
+        const result = await usersCollection.updateOne(find, updatedDoc)
+        return res.send(result)
+      }
+
       const updatedDoc = {
         $set: {
           role: updatedRole
