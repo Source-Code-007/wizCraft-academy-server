@@ -58,15 +58,72 @@ async function run() {
     })
 
     // popular six instructor
-    app.get('/popular-instructors', async(req, res)=>{
-      const result = await usersCollection.find().sort({enrolledStudent: -1}).limit(6).toArray()
+    app.get('/popular-instructors', async (req, res) => {
+      const result = await usersCollection.find({ role: 'instructor' }).sort({ enrolledStudent: -1 }).limit(6).toArray()
       res.send(result)
     })
 
     // testimonials
-    app.get('/get-testimonials', async(req, res)=>{
+    app.get('/get-testimonials', async (req, res) => {
       const result = await testimonialCollection.find().toArray()
       res.send(result)
+    })
+
+    // Dashboard stats TODO: _____
+    app.get('/dashboard-stats', async (req, res) => {
+      const { role } = req.query
+      const { email } = req.query
+
+      if (role === 'student') {
+        const totalPayments = await paymentCollection.countDocuments({ email });
+        const totalEnrollments = await enrolledClassesCollection.countDocuments({ enrolledBy: email });
+
+        const totalExpenditurePipeline = [
+          { $match: { enrolledBy: email } },
+          { $group: { _id: null, totalExpenditure: { $sum: "$price" } } }
+        ];
+
+        const totalExpenditureResult = await enrolledClassesCollection.aggregate(totalExpenditurePipeline).toArray();
+        const totalExpend = totalExpenditureResult.length > 0 ? totalExpenditureResult[0].totalExpenditure : 0;
+
+        // Send the stats as JSON response
+        return res.json({
+          totalPayments,
+          totalEnrollments,
+          totalExpend
+        });
+      }
+
+      else if (role === 'instructor') {
+
+        const query = {
+          instructorEmail: email
+        };
+        const classes = await classCollection.find(query).toArray();
+        const totalEnrolledStudents = classes.reduce((acc, classP) => acc + classP?.enrolledStudent, 0)
+        const totalEarning = classes.reduce((acc, classP) => (acc + classP?.enrolledStudent * classP?.price), 0)
+
+        const instructors = await usersCollection.find({ role: 'instructor' }).sort({ enrolledStudent: -1 }).toArray()
+        const index = instructors.findIndex(instructor => instructor.email === email);
+
+
+
+        return res.send({ totalEnrolledStudents, totalEarning, rank: index + 1 });
+
+      }
+
+      else if (role === 'admin') {
+        const totalSum = await paymentCollection.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]).toArray();
+        const totalEarning = totalSum.length ? totalSum[0].total / 100 : 0;
+
+        const totalSt = await classCollection.aggregate([{ $group: { _id: null, totalEnrolledStudents: { $sum: "$enrolledStudent" } } }]).toArray();
+        const totalEnrolled = totalSt.length ? totalSt[0].totalEnrolledStudents : 0;
+
+        const totalStudents = await usersCollection.countDocuments({ role: 'student' });
+
+        res.send({ totalEarning, totalStudents, totalEnrolled });
+      }
+
     })
 
 
@@ -351,10 +408,6 @@ async function run() {
 
 
 
-
-    app.get('/test-jwt', jwtVerifyF, (req, res) => {
-      res.send({ test: 'done' })
-    })
 
   } finally {
     // Ensures that the client will close when you finish/error
