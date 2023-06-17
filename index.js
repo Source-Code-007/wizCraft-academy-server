@@ -42,6 +42,7 @@ async function run() {
     const paymentCollection = wizcraft_DB.collection('paymentCollection')
     const enrolledClassesCollection = wizcraft_DB.collection('enrolledClassesCollection')
     const testimonialCollection = wizcraft_DB.collection('testimonialCollection')
+    const newsCollection = wizcraft_DB.collection('newsCollection')
 
 
     // common route ***
@@ -63,11 +64,18 @@ async function run() {
       res.send(result)
     })
 
-    // testimonials
+    // get testimonials
     app.get('/get-testimonials', async (req, res) => {
       const result = await testimonialCollection.find().toArray()
       res.send(result)
     })
+    
+    // get news 
+    app.get('/get-news', async (req, res) => {
+      const result = await newsCollection.find().toArray()
+      res.send(result)
+    })
+
 
     // Dashboard stats TODO: _____
     app.get('/dashboard-stats', async (req, res) => {
