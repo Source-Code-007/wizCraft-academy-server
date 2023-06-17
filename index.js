@@ -70,9 +70,23 @@ async function run() {
       res.send(result)
     })
     
-    // get news 
+    // get all news 
     app.get('/get-news', async (req, res) => {
       const result = await newsCollection.find().toArray()
+      res.send(result)
+    })
+
+    // get single news 
+    app.get('/get-single-news/:id', async (req, res) => {
+      const id = req.params.id
+      console.log(id);
+      const result = await newsCollection.findOne({_id: new ObjectId(id)})
+      res.send(result)
+    })
+
+    // get recent three news 
+    app.get('/get-recent-news', async (req, res) => {
+      const result = await newsCollection.find().sort({newsPublishedDate: -1}).limit(3).toArray()
       res.send(result)
     })
 
