@@ -69,7 +69,7 @@ async function run() {
       const result = await testimonialCollection.find().toArray()
       res.send(result)
     })
-    
+
     // get all news 
     app.get('/get-news', async (req, res) => {
       const result = await newsCollection.find().toArray()
@@ -79,18 +79,28 @@ async function run() {
     // get single news 
     app.get('/get-single-news/:id', async (req, res) => {
       const id = req.params.id
-      const result = await newsCollection.findOne({_id: new ObjectId(id)})
+      const result = await newsCollection.findOne({ _id: new ObjectId(id) })
       res.send(result)
     })
 
     // get recent three news 
     app.get('/get-recent-news', async (req, res) => {
-      const result = await newsCollection.find().sort({newsPublishedDate: -1}).limit(3).toArray()
+      const result = await newsCollection.find().sort({ newsPublishedDate: -1 }).limit(3).toArray()
       res.send(result)
     })
 
 
-    // Dashboard stats TODO: _____
+    // get all classes for a single instructor
+    app.get('/get-classes-specific-instructor/:id', async (req, res) => {
+      const email = req.params.email
+      const find = { _id: new ObjectId(email) }
+      const result = await usersCollection.find(find).toArray()
+      res.send(result)
+    })
+
+
+
+    // Dashboard stats
     app.get('/dashboard-stats', async (req, res) => {
       const { role } = req.query
       const { email } = req.query
@@ -126,8 +136,6 @@ async function run() {
 
         const instructors = await usersCollection.find({ role: 'instructor' }).sort({ enrolledStudent: -1 }).toArray()
         const index = instructors.findIndex(instructor => instructor.email === email);
-
-
 
         return res.send({ totalEnrolledStudents, totalEarning, rank: index + 1 });
 
@@ -312,16 +320,9 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/all-instructors', async (req, res) => {
+    app.get('/get-all-instructors', async (req, res) => {
       const find = { role: 'instructor' }
       const result = await usersCollection.find(find).toArray()
-      res.send(result)
-    })
-
-    app.get('/instructor/:id', async(req, res)=>{
-      const id = req.params.id
-      const find = {_id: new ObjectId(id)}
-      const result = await usersCollection(find)
       res.send(result)
     })
 
@@ -381,11 +382,12 @@ async function run() {
 
     })
 
-    // for manage classes by admin
-    app.get('/all-classes', jwtVerifyF, async (req, res) => {
-      const result = await classCollection.find({}).toArray()
-      res.send(result)
-    })
+       // Get all classes for manage for admin 
+       app.get('/all-classes', jwtVerifyF, async (req, res) => {
+        const result = await classCollection.find({}).toArray()
+        res.send(result)
+      })
+
 
 
     // utilites ***
