@@ -79,7 +79,6 @@ async function run() {
     // get single news 
     app.get('/get-single-news/:id', async (req, res) => {
       const id = req.params.id
-      console.log(id);
       const result = await newsCollection.findOne({_id: new ObjectId(id)})
       res.send(result)
     })
@@ -316,6 +315,13 @@ async function run() {
     app.get('/all-instructors', async (req, res) => {
       const find = { role: 'instructor' }
       const result = await usersCollection.find(find).toArray()
+      res.send(result)
+    })
+
+    app.get('/instructor/:id', async(req, res)=>{
+      const id = req.params.id
+      const find = {_id: new ObjectId(id)}
+      const result = await usersCollection(find)
       res.send(result)
     })
 
