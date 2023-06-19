@@ -91,10 +91,10 @@ async function run() {
 
 
     // get all classes for a single instructor
-    app.get('/get-classes-specific-instructor/:id', async (req, res) => {
-      const email = req.params.email
-      const find = { _id: new ObjectId(email) }
-      const result = await usersCollection.find(find).toArray()
+    app.get('/get-classes-specific-instructor/:name', async (req, res) => {
+      const instructorName = req.params.name
+      const find = { instructorName }
+      const result = await classCollection.find(find).toArray()
       res.send(result)
     })
 
@@ -287,7 +287,6 @@ async function run() {
       res.send(result)
 
     })
-
 
 
 
